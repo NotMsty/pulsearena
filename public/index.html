@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PulseArena</title>
+  <style>
+    body { margin: 0; background: #0f0f0f; color: white; font-family: Arial; }
+    canvas { display: block; }
+
+    #menu {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    button {
+      padding: 10px;
+      margin: 5px;
+      background: #00ffcc;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>PulseArena</h1>
+  <button onclick="loadLobbies()">Play</button>
+  <button onclick="createGame()">Create Game</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+const socket = io();
+
+let canvas = document.getElementById("game");
+let ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let players = {};
+
+// RECEIVE GAME STATE
+socket.on("gameState", (data) => {
+  players = data;
+});
+
+// LOAD LOBBIES
+function loadLobbies() {
+  socket.emit("getRooms");
+}
+
+// CREATE GAME
+function createGame() {
+  socket.emit("createRoom", {
+    name: "My Room",
+    maxPlayers: 4
+  });
+}
+
+// INPUT
+document.addEventListener("keydown", (e) => {
+  let dx = 0, dy = 0;
+
+  if (e.code === "KeyA") dx = -1;
+  if (e.code === "KeyD") dx = 1;
+  if (e.code === "Space") dy = -1;
+
+  socket.emit("input", { dx, dy });
+});
+
+// DRAW LOOP
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let id in players) {
+    let p = players[id];
+
+    ctx.fillStyle = id === socket.id ? "cyan" : "red";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+
+</body>
+</html>
